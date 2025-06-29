@@ -1,7 +1,7 @@
-use comrak::nodes::{AstNode, ListType, NodeValue};
-use comrak::{Arena, Options, parse_document};
-
 use crate::printer::Printer;
+use comrak::nodes::{AstNode, ListType, NodeList, NodeValue};
+use comrak::{Arena, Options, parse_document};
+use regex::{Captures, Regex};
 
 pub fn transform(input: &str) -> String {
     let arena = Arena::new();
@@ -54,9 +54,10 @@ fn transform_ul<'a>(parent: &'a AstNode<'a>) {
         };
 
         if let Some(node_list) = node_list_clone {
-            let new_list = comrak::nodes::NodeList {
+            let start = 1;
+            let new_list = NodeList {
                 list_type: ListType::Ordered,
-                start: 1,
+                start,
                 delimiter: node_list.delimiter,
                 bullet_char: node_list.bullet_char,
                 tight: node_list.tight,
@@ -65,8 +66,61 @@ fn transform_ul<'a>(parent: &'a AstNode<'a>) {
                 padding: node_list.padding,
             };
             node.data.borrow_mut().value = NodeValue::List(new_list);
+
+            // After converting to ordered list, replace (cur-N) with actual numbers
+            replace_cur_expressions_in_list(node, start);
         }
     }
+}
+
+fn replace_cur_expressions_in_list<'a>(list_node: &'a AstNode<'a>, start: usize) {
+    let mut item_number = start as i32;
+
+    for item in list_node.children() {
+        if let NodeValue::Item(_) = &item.data.borrow().value {
+            let mut stack = Vec::new();
+            stack.push(item);
+
+            while let Some(node) = stack.pop() {
+                let new_text_opt = {
+                    if let NodeValue::Text(text) = &node.data.borrow().value {
+                        let new_text = replace_cur(text, item_number);
+                        if new_text != *text {
+                            Some(new_text)
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                };
+
+                if let Some(new_text) = new_text_opt {
+                    node.data.borrow_mut().value = NodeValue::Text(new_text);
+                }
+
+                for child in node.children() {
+                    stack.push(child);
+                }
+            }
+
+            item_number += 1;
+        }
+    }
+}
+
+fn replace_cur(text: &str, current_item_number: i32) -> String {
+    let re = Regex::new(r"\(cur([+-]\d+)\)").unwrap();
+    re.replace_all(text, |caps: &Captures| {
+        let offset_str = &caps[1];
+        if let Ok(offset) = offset_str.parse::<i32>() {
+            let result = current_item_number + offset;
+            format!("({})", result)
+        } else {
+            caps[0].to_string() // Return original if parsing fails
+        }
+    })
+    .to_string()
 }
 
 #[cfg(test)]
@@ -154,6 +208,69 @@ Some text
 with no lists"#;
         let expected = r#"Just some text
 with no lists
+"#;
+        assert_eq!(transform(input), expected);
+    }
+
+    #[test]
+    fn test_cur_minus_one_replacement() {
+        let input = r#"<!-- ol -->
+- First item
+- Second item
+- Third item with (cur-1) reference
+<!-- /ol -->"#;
+        let expected = r#"<!-- ol -->
+1. First item
+2. Second item
+3. Third item with (2) reference
+
+<!-- /ol -->
+"#;
+        assert_eq!(transform(input), expected);
+    }
+
+    #[test]
+    fn test_cur_expressions_various_offsets() {
+        let input = r#"<!-- ol -->
+- First item
+- Second item with (cur-1) and (cur+1)
+- Third item with (cur-2) and (cur+0)
+- Fourth item with (cur-3)
+<!-- /ol -->"#;
+        let expected = r#"<!-- ol -->
+1. First item
+2. Second item with (1) and (3)
+3. Third item with (1) and (3)
+4. Fourth item with (1)
+
+<!-- /ol -->
+"#;
+        assert_eq!(transform(input), expected);
+    }
+
+    #[test]
+    fn test_cur_expressions_no_magic_comments() {
+        let input = r#"- First item with (cur-1)
+- Second item with (cur+1)"#;
+        let expected = r#"- First item with (cur-1)
+- Second item with (cur+1)
+"#;
+        assert_eq!(transform(input), expected);
+    }
+
+    #[test]
+    fn test_cur_expressions_edge_cases() {
+        let input = r#"<!-- ol -->
+- First item with (cur-1) should be (0)
+- Second item with (cur+0) should be (2)
+- Third item with (cur-10) should be (-7)
+<!-- /ol -->"#;
+        let expected = r#"<!-- ol -->
+1. First item with (0) should be (0)
+2. Second item with (2) should be (2)
+3. Third item with (-7) should be (-7)
+
+<!-- /ol -->
 "#;
         assert_eq!(transform(input), expected);
     }
