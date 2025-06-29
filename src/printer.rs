@@ -71,7 +71,7 @@ impl Printer {
                 if let Some(counter_val) = self.list_stack.last().copied() {
                     // Get indentation from source position if available
                     let indent = self.get_item_indentation(node);
-                    
+
                     if counter_val == -1 {
                         // Bullet list item
                         self.output.push_str(&format!("{}- ", indent));
@@ -79,7 +79,7 @@ impl Printer {
                         // Ordered list item
                         self.output
                             .push_str(&format!("{}{}. ", indent, counter_val));
-                        
+
                         // Update counter after using it
                         if let Some(counter) = self.list_stack.last_mut() {
                             *counter += 1;
@@ -206,11 +206,11 @@ mod tests {
         let arena = Arena::new();
         let options = Options::default();
         let root = parse_document(&arena, input, &options);
-        
+
         let mut printer = Printer::new();
         printer.render_node(root);
         let result = printer.finish();
-        
+
         assert_eq!(result, expected);
     }
 
@@ -438,7 +438,8 @@ End text
 
     #[test]
     fn test_mixed_markdown_and_html_links() {
-        let input = r#"Markdown [link](https://example.com) and HTML <a href="https://test.com">link</a>."#;
+        let input =
+            r#"Markdown [link](https://example.com) and HTML <a href="https://test.com">link</a>."#;
         let expected = r#"Markdown [link](https://example.com) and HTML <a href="https://test.com">link</a>.
 "#;
         test_printer_output(input, expected);

@@ -3,11 +3,11 @@ use comrak::nodes::{AstNode, ListType, NodeList, NodeValue};
 use comrak::{Arena, Options, parse_document};
 use regex::{Captures, Regex};
 
-/// Transforms markdown content by converting unordered lists to ordered lists 
+/// Transforms markdown content by converting unordered lists to ordered lists
 /// within magic comment blocks and replacing current position expressions.
 ///
 /// This function parses the input markdown, processes it to convert bullet lists
-/// to numbered lists when they appear between `<!-- ol -->` and `<!-- /ol -->` 
+/// to numbered lists when they appear between `<!-- ol -->` and `<!-- /ol -->`
 /// comment blocks, and replaces expressions like `(cur±N)` with actual numbers.
 ///
 /// # Arguments
