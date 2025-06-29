@@ -6,7 +6,7 @@
 cargo install md_ol_util
 ```
 
-## Usage
+## CLI
 
 ```
 Transform markdown unordered lists to ordered lists with current position expressions
@@ -19,4 +19,22 @@ Arguments:
 Options:
   -h, --help     Print help
   -V, --version  Print version
+```
+
+## Usage
+
+```rust
+use md_ol_util::transform;
+
+let input = r#"<!-- ol -->
+- First item
+- Second item with (cur-1) reference
+<!-- /ol -->"#;
+
+let result = transform(input);
+// Result will be:
+// <!-- ol -->
+// 1. First item  
+// 2. Second item with (1) reference
+// <!-- /ol -->
 ```
