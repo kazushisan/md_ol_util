@@ -105,6 +105,15 @@ impl Printer {
             NodeValue::LineBreak => {
                 self.output.push_str("  \n");
             }
+            NodeValue::HtmlBlock(html_block) => {
+                self.output.push_str(&html_block.literal);
+                if !self.output.ends_with('\n') {
+                    self.output.push('\n');
+                }
+            }
+            NodeValue::HtmlInline(html) => {
+                self.output.push_str(html);
+            }
             _ => {
                 // Handle other node types as needed
                 for child in node.children() {
@@ -327,6 +336,56 @@ Paragraph text
 2. Item two
 
 End text
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_html_comment() {
+        let input = r#"<!-- This is an HTML comment -->"#;
+        let expected = r#"<!-- This is an HTML comment -->
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_html_block() {
+        let input = r#"<div class="example">
+    <p>This is HTML content</p>
+</div>"#;
+        let expected = r#"<div class="example">
+    <p>This is HTML content</p>
+</div>
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_html_inline() {
+        let input = r#"This is text with <em>inline HTML</em> content."#;
+        let expected = r#"This is text with <em>inline HTML</em> content.
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_html_elements_passthrough() {
+        let input = r#"Text with <a href="https://example.com">anchor</a> and <img src="image.jpg" alt="image"> tags."#;
+        let expected = r#"Text with <a href="https://example.com">anchor</a> and <img src="image.jpg" alt="image"> tags.
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_multiline_html_comment() {
+        let input = r#"<!--
+This is a multi-line
+HTML comment
+-->"#;
+        let expected = r#"<!--
+This is a multi-line
+HTML comment
+-->
 "#;
         test_printer_output(input, expected);
     }
