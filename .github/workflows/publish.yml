@@ -1,0 +1,25 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: |
+          node -e "
+          const fs = require('fs');
+          const tag = '${{ github.event.release.tag_name }}';
+          const version = tag.startsWith('v') ? tag.slice(1) : tag;
+          const content = fs.readFileSync('Cargo.toml', 'utf8');
+          const updated = content.replace(/version = \"0\.0\.0\"/, \`version = \"\${version}\"\`);
+          fs.writeFileSync('Cargo.toml', updated);
+          "
+
+      - run: cargo publish --allow-dirty
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

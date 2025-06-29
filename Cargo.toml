@@ -1,7 +1,7 @@
 [package]
 name = "md_ol_util"
 description = "Transform markdown unordered lists to ordered lists with current position expressions"
-version = "0.1.0"
+version = "0.0.0" # version will be set by release script
 edition = "2024"
 authors = ["Kazushi Konosu <kazushi@konosu.me>"]
 license = "MIT"
