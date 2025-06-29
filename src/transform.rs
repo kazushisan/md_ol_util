@@ -79,7 +79,7 @@ fn transform_ul<'a>(parent: &'a AstNode<'a>) {
     for node in nodes_to_convert {
         let node_list_clone = {
             if let NodeValue::List(list_data) = &node.data.borrow().value {
-                Some(list_data.clone())
+                Some(*list_data)
             } else {
                 None
             }
