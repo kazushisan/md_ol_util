@@ -19,7 +19,8 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - run: |
+      - name: Update Cargo.toml version
+        run: |
           node -e "
           const fs = require('fs');
           const tag = '${{ github.event.release.tag_name }}';
@@ -29,6 +30,7 @@ jobs:
           fs.writeFileSync('Cargo.toml', updated);
           "
 
-      - run: cargo publish --allow-dirty
+      - name: Publish to crates.io
+        run: cargo publish --allow-dirty
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
