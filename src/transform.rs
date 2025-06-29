@@ -3,6 +3,38 @@ use comrak::nodes::{AstNode, ListType, NodeList, NodeValue};
 use comrak::{Arena, Options, parse_document};
 use regex::{Captures, Regex};
 
+/// Transforms markdown content by converting unordered lists to ordered lists 
+/// within magic comment blocks and replacing current position expressions.
+///
+/// This function parses the input markdown, processes it to convert bullet lists
+/// to numbered lists when they appear between `<!-- ol -->` and `<!-- /ol -->` 
+/// comment blocks, and replaces expressions like `(cur±N)` with actual numbers.
+///
+/// # Arguments
+///
+/// * `input` - A string slice containing the markdown content to transform
+///
+/// # Returns
+///
+/// A `String` containing the transformed markdown content
+///
+/// # Examples
+///
+/// ```
+/// use md_ol_util::transform;
+///
+/// let input = r#"<!-- ol -->
+/// - First item
+/// - Second item with (cur-1) reference
+/// <!-- /ol -->"#;
+///
+/// let result = transform(input);
+/// // Result will be:
+/// // <!-- ol -->
+/// // 1. First item  
+/// // 2. Second item with (1) reference
+/// // <!-- /ol -->
+/// ```
 pub fn transform(input: &str) -> String {
     let arena = Arena::new();
     let options = Options::default();
