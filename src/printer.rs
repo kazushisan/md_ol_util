@@ -114,6 +114,34 @@ impl Printer {
             NodeValue::HtmlInline(html) => {
                 self.output.push_str(html);
             }
+            NodeValue::Image(link_data) => {
+                self.output.push_str("![");
+                for child in node.children() {
+                    self.render_node(child);
+                }
+                self.output.push_str("](");
+                self.output.push_str(&link_data.url);
+                if !link_data.title.is_empty() {
+                    self.output.push_str(" \"");
+                    self.output.push_str(&link_data.title);
+                    self.output.push('"');
+                }
+                self.output.push(')');
+            }
+            NodeValue::Link(link_data) => {
+                self.output.push('[');
+                for child in node.children() {
+                    self.render_node(child);
+                }
+                self.output.push_str("](");
+                self.output.push_str(&link_data.url);
+                if !link_data.title.is_empty() {
+                    self.output.push_str(" \"");
+                    self.output.push_str(&link_data.title);
+                    self.output.push('"');
+                }
+                self.output.push(')');
+            }
             _ => {
                 // Handle other node types as needed
                 for child in node.children() {
@@ -372,6 +400,46 @@ End text
     fn test_html_elements_passthrough() {
         let input = r#"Text with <a href="https://example.com">anchor</a> and <img src="image.jpg" alt="image"> tags."#;
         let expected = r#"Text with <a href="https://example.com">anchor</a> and <img src="image.jpg" alt="image"> tags.
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_markdown_image_simple() {
+        let input = r#"![Alt text](image.jpg)"#;
+        let expected = r#"![Alt text](image.jpg)
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_markdown_image_with_title() {
+        let input = r#"![Alt text](image.jpg "Image title")"#;
+        let expected = r#"![Alt text](image.jpg "Image title")
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_markdown_link_simple() {
+        let input = r#"[Link text](https://example.com)"#;
+        let expected = r#"[Link text](https://example.com)
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_markdown_link_with_title() {
+        let input = r#"[Link text](https://example.com "Link title")"#;
+        let expected = r#"[Link text](https://example.com "Link title")
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_mixed_markdown_and_html_links() {
+        let input = r#"Markdown [link](https://example.com) and HTML <a href="https://test.com">link</a>."#;
+        let expected = r#"Markdown [link](https://example.com) and HTML <a href="https://test.com">link</a>.
 "#;
         test_printer_output(input, expected);
     }
