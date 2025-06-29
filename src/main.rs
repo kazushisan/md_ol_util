@@ -1,22 +1,33 @@
+use clap::Parser;
 use md_ol_util::transform;
+use std::fs;
+use std::io::{self, Read};
 
-fn main() {
-    let sample_markdown = r#"# My Document
+#[derive(Parser)]
+#[command(name = "md_ol_util")]
+#[command(
+    about = "Transform markdown unordered lists to ordered lists with current position expressions"
+)]
+#[command(version)]
+struct Args {
+    #[arg(help = "Input markdown file. If not provided, reads from stdin")]
+    file: Option<String>,
+}
 
-Here are some items:
+fn main() -> io::Result<()> {
+    let args = Args::parse();
 
-- First item
-- Second item  
-- Third item
+    let input = match args.file {
+        Some(file_path) => fs::read_to_string(file_path)?,
+        None => {
+            let mut buffer = String::new();
+            io::stdin().read_to_string(&mut buffer)?;
+            buffer
+        }
+    };
 
-Some more text here.
+    let transformed = transform(&input);
+    print!("{}", transformed);
 
-* Another list
-+ With different bullets
-- Mixed together"#;
-
-    println!("Original markdown:");
-    println!("{}", sample_markdown);
-    println!("\nConverted markdown:");
-    println!("{}", transform(sample_markdown));
+    Ok(())
 }
