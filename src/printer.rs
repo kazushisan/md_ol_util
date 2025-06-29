@@ -1,11 +1,11 @@
 use comrak::nodes::{AstNode, NodeValue};
 
-pub struct MarkdownRenderer {
+pub struct Printer {
     output: String,
     list_stack: Vec<i32>, // Track list item counters for nested lists
 }
 
-impl MarkdownRenderer {
+impl Printer {
     pub fn new() -> Self {
         Self {
             output: String::new(),

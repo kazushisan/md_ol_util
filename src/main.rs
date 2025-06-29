@@ -1,4 +1,4 @@
-use md_ol_util::convert_unordered_to_ordered;
+use md_ol_util::transform;
 
 fn main() {
     let sample_markdown = r#"# My Document
@@ -18,5 +18,5 @@ Some more text here.
     println!("Original markdown:");
     println!("{}", sample_markdown);
     println!("\nConverted markdown:");
-    println!("{}", convert_unordered_to_ordered(sample_markdown));
+    println!("{}", transform(sample_markdown));
 }

@@ -1,17 +1,17 @@
 use comrak::nodes::{AstNode, ListType, NodeValue};
 use comrak::{Arena, Options, parse_document};
 
-mod renderer;
-use renderer::MarkdownRenderer;
+mod printer;
+use printer::Printer;
 
-pub fn convert_unordered_to_ordered(input: &str) -> String {
+pub fn transform(input: &str) -> String {
     let arena = Arena::new();
     let options = Options::default();
     let root = parse_document(&arena, input, &options);
     transform_ast(root);
-    let mut renderer = MarkdownRenderer::new();
-    renderer.render_node(root);
-    renderer.finish()
+    let mut printer = Printer::new();
+    printer.render_node(root);
+    printer.finish()
 }
 
 fn transform_ast<'a>(node: &'a AstNode<'a>) {
@@ -44,7 +44,7 @@ mod tests {
 2. Second item
 3. Third item
 "#;
-        assert_eq!(convert_unordered_to_ordered(input), expected);
+        assert_eq!(transform(input), expected);
     }
 
     #[test]
@@ -62,7 +62,7 @@ Some text"#;
 
 Some text
 "#;
-        assert_eq!(convert_unordered_to_ordered(input), expected);
+        assert_eq!(transform(input), expected);
     }
 
     #[test]
@@ -72,7 +72,7 @@ Some text
         let expected = r#"  1. Indented item
   2. Another indented item
 "#;
-        assert_eq!(convert_unordered_to_ordered(input), expected);
+        assert_eq!(transform(input), expected);
     }
 
     #[test]
@@ -82,6 +82,6 @@ with no lists"#;
         let expected = r#"Just some text
 with no lists
 "#;
-        assert_eq!(convert_unordered_to_ordered(input), expected);
+        assert_eq!(transform(input), expected);
     }
 }
