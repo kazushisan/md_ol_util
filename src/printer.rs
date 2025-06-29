@@ -47,27 +47,43 @@ impl Printer {
                 }
             }
             NodeValue::List(list_data) => {
-                if list_data.list_type == comrak::nodes::ListType::Ordered {
-                    self.list_stack.push(list_data.start as i32);
-                    for child in node.children() {
-                        self.render_node(child);
+                match list_data.list_type {
+                    comrak::nodes::ListType::Ordered => {
+                        self.list_stack.push(list_data.start as i32);
+                        for child in node.children() {
+                            self.render_node(child);
+                        }
+                        self.list_stack.pop();
                     }
-                    self.list_stack.pop();
-                    if !self.is_in_list() && self.should_add_blank_line_after_list(node) {
-                        self.output.push('\n');
+                    comrak::nodes::ListType::Bullet => {
+                        self.list_stack.push(-1); // Use -1 to indicate bullet list
+                        for child in node.children() {
+                            self.render_node(child);
+                        }
+                        self.list_stack.pop();
                     }
+                }
+                if !self.is_in_list() && self.should_add_blank_line_after_list(node) {
+                    self.output.push('\n');
                 }
             }
             NodeValue::Item(_) => {
                 if let Some(counter_val) = self.list_stack.last().copied() {
                     // Get indentation from source position if available
                     let indent = self.get_item_indentation(node);
-                    self.output
-                        .push_str(&format!("{}{}. ", indent, counter_val));
-
-                    // Update counter after using it
-                    if let Some(counter) = self.list_stack.last_mut() {
-                        *counter += 1;
+                    
+                    if counter_val == -1 {
+                        // Bullet list item
+                        self.output.push_str(&format!("{}- ", indent));
+                    } else {
+                        // Ordered list item
+                        self.output
+                            .push_str(&format!("{}{}. ", indent, counter_val));
+                        
+                        // Update counter after using it
+                        if let Some(counter) = self.list_stack.last_mut() {
+                            *counter += 1;
+                        }
                     }
 
                     for child in node.children() {
@@ -141,5 +157,177 @@ impl Printer {
             // Default to no indentation
             String::new()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use comrak::{Arena, Options, parse_document};
+
+    fn test_printer_output(input: &str, expected: &str) {
+        let arena = Arena::new();
+        let options = Options::default();
+        let root = parse_document(&arena, input, &options);
+        
+        let mut printer = Printer::new();
+        printer.render_node(root);
+        let result = printer.finish();
+        
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_heading_node() {
+        let input = r#"# Main Heading"#;
+        let expected = r#"# Main Heading
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_heading_with_blank_line() {
+        let input = r#"# Header
+
+Some content"#;
+        let expected = r#"# Header
+
+Some content
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_paragraph_node() {
+        let input = r#"This is a simple paragraph."#;
+        let expected = r#"This is a simple paragraph.
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_text_node() {
+        let input = r#"Plain text"#;
+        let expected = r#"Plain text
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_ordered_list_node() {
+        let input = r#"1. First item
+2. Second item"#;
+        let expected = r#"1. First item
+2. Second item
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_unordered_list_node() {
+        let input = r#"- First item
+- Second item
+- Third item"#;
+        let expected = r#"- First item
+- Second item
+- Third item
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_mixed_list_types() {
+        let input = r#"# Lists Example
+
+Ordered list:
+1. First ordered
+2. Second ordered
+
+Unordered list:
+- First bullet
+- Second bullet"#;
+        let expected = r#"# Lists Example
+
+Ordered list:
+
+1. First ordered
+2. Second ordered
+
+Unordered list:
+
+- First bullet
+- Second bullet
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_soft_break_in_paragraph() {
+        let input = r#"Line one
+Line two"#;
+        let expected = r#"Line one
+Line two
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_multiple_headings() {
+        let input = r#"# First
+
+## Second
+
+### Third"#;
+        let expected = r#"# First
+
+## Second
+
+### Third
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_paragraph_before_list() {
+        let input = r#"Introduction text
+
+1. First item
+2. Second item"#;
+        let expected = r#"Introduction text
+
+1. First item
+2. Second item
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_empty_document() {
+        let input = r#""#;
+        let expected = r#"
+"#;
+        test_printer_output(input, expected);
+    }
+
+    #[test]
+    fn test_nested_structure() {
+        let input = r#"# Main
+
+Paragraph text
+
+1. Item one
+2. Item two
+
+End text"#;
+        let expected = r#"# Main
+
+Paragraph text
+
+1. Item one
+2. Item two
+
+End text
+"#;
+        test_printer_output(input, expected);
     }
 }
